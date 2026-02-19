@@ -1,0 +1,8 @@
+*.csv
+node_modules/
+*.json
+scraper_tesla.js
+tesla.html
+tesla_findus_replica.html
+tesla_replica.html
+map.html
