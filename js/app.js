@@ -110,9 +110,11 @@ function fil(){
 function setYear(year){
   activeYear=year;
   document.querySelectorAll('.yb').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.y)===year));
-  const mes=LAST_MES[year]||1;
+  const mesF=FIRST_MES&&FIRST_MES[year]||1;
+  const mesL=LAST_MES[year]||1;
   const hasPrev=DATA[year-1]&&DATA[year-1].length>0;
-  document.getElementById('periodTxt').innerHTML='<strong>'+year+'</strong> · Datos al '+MESES[mes]+' '+year+(hasPrev?' · Comparativo vs '+(year-1):' · Sin comparativo');
+  const rng=mesF===mesL?MESES[mesL]+' '+year:MESES[mesF]+'-'+MESES[mesL]+' '+year;
+  document.getElementById('periodTxt').innerHTML='<strong>'+year+'</strong> · Promedio '+rng+(hasPrev?' · Comparativo vs '+(year-1):' · Sin comparativo');
   fillCiud(year);
   fil();
 }
