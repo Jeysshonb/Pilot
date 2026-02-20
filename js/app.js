@@ -83,16 +83,25 @@ function renderKPIs(data){
   top10el.innerHTML=[...data].sort((a,b)=>b.crit_pct-a.crit_pct).slice(0,10).map((r,i)=>{const c=COLOR[r.nivel]||'#888';const hD=r.delta!==null;const dUp=hD&&r.delta>0;const dStr=!hD?'':dUp?'▲ +'+r.delta.toFixed(1)+'%':r.delta<0?'▼ '+r.delta.toFixed(1)+'%':'=';const dCl=!hD?'#ccc':dUp?'#CC0000':'#27A243';return'<div class="ti" onclick="focusItem(currentData.findIndex(x=>x.ceco===r.ceco))"><span class="tr">'+(i+1)+'</span><div class="tn"><div class="tnm">'+(r.nombre||'Sin nombre')+'</div><div class="tc">'+(r.ciudad||'')+' · '+(r.region||'')+'</div></div><div class="tt"><div class="tp" style="color:'+c+'">'+r.crit_pct.toFixed(0)+'%</div>'+(hD?'<div class="td2" style="color:'+dCl+'">'+dStr+'</div>':'')+'</div></div>';}).join('');
 }
 
+function fillCiud(year){
+  const sel=document.getElementById('fciud');
+  const cur=sel.value;
+  const cities=[...new Set((DATA[year]||[]).map(r=>r.ciudad).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  sel.innerHTML='<option value="">Todas las ciudades</option>'+cities.map(c=>'<option value="'+c.toLowerCase()+'"'+(cur===c.toLowerCase()?' selected':'')+'>'+c+'</option>').join('');
+}
+
 function fil(){
   const s=document.getElementById('si').value.toLowerCase();
   const rg=document.getElementById('freg').value;
   const zn=document.getElementById('fzona').value;
   const cn=document.getElementById('fconc').value;
+  const cd=document.getElementById('fciud').value;
   currentData=(DATA[activeYear]||[]).filter(r=>
     (!s||[r.nombre,r.ciudad,r.departamento,r.am,r.dm].join(' ').toLowerCase().includes(s))
     &&(!rg||r.region.toLowerCase()===rg)
     &&(!zn||r.zona.toLowerCase()===zn)
     &&(!cn||r.concepto.toLowerCase()===cn)
+    &&(!cd||r.ciudad.toLowerCase()===cd)
     &&(!activeNivel||r.nivel.toLowerCase()===activeNivel)
   );
   renderLista(currentData);buildMap(currentData);updateResumen(currentData);renderKPIs(currentData);
@@ -104,6 +113,7 @@ function setYear(year){
   const mes=LAST_MES[year]||1;
   const hasPrev=DATA[year-1]&&DATA[year-1].length>0;
   document.getElementById('periodTxt').innerHTML='<strong>'+year+'</strong> · Datos al '+MESES[mes]+' '+year+(hasPrev?' · Comparativo vs '+(year-1):' · Sin comparativo');
+  fillCiud(year);
   fil();
 }
 
