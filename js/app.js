@@ -5,6 +5,9 @@ const map=L.map('map',{zoomControl:true,preferCanvas:true});
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:19,subdomains:'abcd'}).addTo(map);
 map.setView([4.5,-74.0],6);
 
+// Mapeo score → valor real para mostrar en popup
+const SL_RAW={s_fte:{raw:'fte_ratio',fmt:v=>(v*100).toFixed(0)+'%'},s_rotacion:{raw:'retiros',fmt:v=>Math.round(v)+''},s_aus:{raw:'dias_aus',fmt:v=>Math.round(v)+'d'},s_aus_med:{raw:'dias_med_aus',fmt:v=>Math.round(v)+'d'},s_acc:{raw:'accidentes',fmt:v=>Math.round(v)+''},s_disc:{raw:'proc_disc',fmt:v=>Math.round(v)+''},s_quejas:{raw:'quejas',fmt:v=>Math.round(v)+''},s_hextra:{raw:'horas_extra_ratio',fmt:v=>v.toFixed(1)+'%'}};
+
 function makeMarker(r,i){
   const c=COLOR[r.nivel]||'#888';
   const rad=r.nivel==='High'?8:r.nivel==='Low'?4:5.5;
@@ -13,7 +16,7 @@ function makeMarker(r,i){
   const dCol=r.delta===null?'#aaa':r.delta>0?'#CC0000':'#27A243';
   m.bindTooltip('<strong>'+(r.nombre||'?')+'</strong> · '+(r.ciudad||'')+'<br>Criticidad: <strong style="color:'+c+'">'+r.crit_pct.toFixed(0)+'%</strong> '+r.nivel+' &nbsp;<span style="color:'+dCol+';font-weight:700">'+dSign+'</span>',{direction:'top',opacity:.95});
   const critBg=c+'18';
-  const scoreRows=Object.entries(SL).map(([k,lbl])=>{const v=r[k]||0;const w=Math.min(100,(v/15)*100);const sc=v>10?'#CC0000':v>5?'#E8920A':'#27A243';return '<div class="psr"><span class="psl">'+lbl+'</span><div class="psbw"><div class="psbf" style="width:'+w+'%;background:'+sc+'"></div></div><span class="psv">'+v.toFixed(0)+'</span></div>';}).join('');
+  const scoreRows=Object.entries(SL).map(([k,lbl])=>{const score=r[k]||0;const w=Math.min(100,(score/15)*100);const sc=score>10?'#CC0000':score>5?'#E8920A':'#27A243';const rm=SL_RAW[k];const disp=rm?rm.fmt(r[rm.raw]||0):score.toFixed(0);return '<div class="psr"><span class="psl">'+lbl+'</span><div class="psbw"><div class="psbf" style="width:'+w+'%;background:'+sc+'"></div></div><span class="psv">'+disp+'</span></div>';}).join('');
   const dHTML=r.delta!==null?'<div class="pdr"><span class="pdv" style="color:'+(r.delta>0?'#CC0000':'#27A243')+'">'+(r.delta>0?'▲ +':'▼ ')+Math.abs(r.delta).toFixed(1)+'%</span><span class="pdl">vs '+(activeYear-1)+' ('+r.prev_crit_pct.toFixed(0)+'%)</span></div>':'<div style="font-size:9px;opacity:.5;margin-top:4px">Sin dato año anterior</div>';
   const popup='<div class="popup"><div class="pt" style="color:'+c+'">'+(r.concepto||'')+' · '+(r.region||'')+' / '+(r.zona||'')+'</div><div class="pn">'+(r.nombre||'Sin nombre')+'</div>'+(r.tienda?'<div style="font-size:10px;color:#bbb;margin:-3px 0 6px;font-weight:600;letter-spacing:.3px">'+r.tienda+'</div>':'')+'<div class="pl">📍 '+(r.ciudad||'')+', '+(r.departamento||'')+'</div><div class="pcb" style="background:'+critBg+';border-left:4px solid '+c+'"><div class="pc-num" style="color:'+c+'">'+r.crit_pct.toFixed(0)+'%</div><div class="pc-r"><div class="pniv" style="color:'+c+'">'+r.nivel+'</div><div class="pbw"><div class="pbf" style="width:'+r.crit_pct+'%;background:'+c+'"></div></div>'+dHTML+'</div></div><div class="psc">'+scoreRows+'</div><div class="pkp"><div class="pk"><div class="pkv">'+(r.attrition*100).toFixed(1)+'%</div><div class="pkl">Rotación</div></div><div class="pk"><div class="pkv">'+(r.abs_ratio*100).toFixed(1)+'%</div><div class="pkl">Ausentismo</div></div><div class="pk"><div class="pkv">'+r.acc_pct.toFixed(1)+'%</div><div class="pkl">Accidentes</div></div><div class="pk"><div class="pkv">'+r.horas_extra_ratio.toFixed(1)+'%</div><div class="pkl">H.Extra</div></div><div class="pk"><div class="pkv">'+r.proc_disc_pct.toFixed(1)+'%</div><div class="pkl">Proc.Disc.</div></div><div class="pk"><div class="pkv">'+r.quejas_pct.toFixed(1)+'%</div><div class="pkl">Quejas</div></div></div><div class="ppl"><strong>AM:</strong> '+(r.am||'N/A')+'<br><strong>DM:</strong> '+(r.dm||'N/A')+'</div></div>';
   m.bindPopup(popup,{maxWidth:340,minWidth:280});
@@ -97,7 +100,7 @@ function fil(){
   const cn=document.getElementById('fconc').value;
   const cd=document.getElementById('fciud').value;
   currentData=(DATA[activeYear]||[]).filter(r=>
-    (!s||[r.nombre,r.ciudad,r.departamento,r.am,r.dm].join(' ').toLowerCase().includes(s))
+    (!s||[r.nombre,r.ciudad,r.departamento,r.am,r.dm,r.tienda||''].join(' ').toLowerCase().includes(s))
     &&(!rg||r.region.toLowerCase()===rg)
     &&(!zn||r.zona.toLowerCase()===zn)
     &&(!cn||r.concepto.toLowerCase()===cn)
