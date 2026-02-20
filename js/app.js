@@ -12,16 +12,18 @@ const SL_RAW={s_fte:{raw:'fte_ratio',fmt:v=>(v*100).toFixed(0)+'%'},s_rotacion:{
 function makeMarker(r,i){
   const c=COLOR[r.nivel]||'#888';
   const rad=r.nivel==='High'?8:r.nivel==='Low'?4:5.5;
-  const m=L.circleMarker([r.lat,r.lon],{radius:rad,fillColor:c,color:'#fff',weight:r.nivel==='High'?1.5:1,opacity:1,fillOpacity:r.nivel==='High'?0.95:0.85});
+  const fillOp=r.cerrada?0.4:(r.nivel==='High'?0.95:0.85);
+  const m=L.circleMarker([r.lat,r.lon],{radius:rad,fillColor:c,color:r.cerrada?c:'#fff',weight:r.cerrada?1.5:(r.nivel==='High'?1.5:1),opacity:1,fillOpacity:fillOp,dashArray:r.cerrada?'4,3':undefined});
   const dSign=r.delta===null?'–':r.delta>0?'▲ +'+r.delta.toFixed(1)+'%':'▼ '+r.delta.toFixed(1)+'%';
   const dCol=r.delta===null?'#aaa':r.delta>0?'#CC0000':'#27A243';
   const critDisp=r.crit_pct_max!=null?r.crit_pct_max:r.crit_pct; // peor mes o mes seleccionado
-  m.bindTooltip('<strong>'+(r.nombre||'?')+'</strong> · '+(r.ciudad||'')+'<br>Criticidad: <strong style="color:'+c+'">'+critDisp.toFixed(0)+'%</strong> '+r.nivel+' &nbsp;<span style="color:'+dCol+';font-weight:700">'+dSign+'</span>',{direction:'top',opacity:.95});
+  const cerTag=r.cerrada?' &nbsp;<span style="color:#999;font-size:10px">⚠ cerrada</span>':'';
+  m.bindTooltip('<strong>'+(r.nombre||'?')+'</strong> · '+(r.ciudad||'')+'<br>Criticidad: <strong style="color:'+c+'">'+critDisp.toFixed(0)+'%</strong> '+r.nivel+cerTag+' &nbsp;<span style="color:'+dCol+';font-weight:700">'+dSign+'</span>',{direction:'top',opacity:.95});
   const critBg=c+'18';
   const scoreRows=Object.entries(SL).map(([k,lbl])=>{const score=r[k]||0;const w=Math.min(100,(score/15)*100);const sc=score>10?'#CC0000':score>5?'#E8920A':'#27A243';const rm=SL_RAW[k];const disp=rm?rm.fmt(r[rm.raw]||0):score.toFixed(0);return '<div class="psr"><span class="psl">'+lbl+'</span><div class="psbw"><div class="psbf" style="width:'+w+'%;background:'+sc+'"></div></div><span class="psv">'+disp+'</span></div>';}).join('');
   const dHTML=r.delta!==null?'<div class="pdr"><span class="pdv" style="color:'+(r.delta>0?'#CC0000':'#27A243')+'">'+(r.delta>0?'▲ +':'▼ ')+Math.abs(r.delta).toFixed(1)+'%</span><span class="pdl">vs '+(activeYear-1)+' ('+r.prev_crit_pct.toFixed(0)+'%)</span></div>':'<div style="font-size:9px;opacity:.5;margin-top:4px">Sin dato año anterior</div>';
   const mesesList=r.mc?Object.keys(r.mc).sort((a,b)=>a-b).map(m=>MESES[m]).join(', '):'';
-  const avgLine=r.nivel==='Cerrada'?'<div style="font-size:9px;color:#999;margin-top:2px">⚠ Datos insuficientes: '+r.meses_data+' mes(es) · '+mesesList+'</div>':activeMes?'<div style="font-size:9px;color:#888;margin-top:2px">Mes: '+MESES[activeMes]+' · Promedio anual: '+r.crit_pct.toFixed(0)+'%</div>':'<div style="font-size:9px;color:#888;margin-top:2px">Peor mes del año · Promedio: '+r.crit_pct.toFixed(0)+'%</div>';
+  const avgLine=r.cerrada?'<div style="font-size:9px;color:#999;margin-top:2px">⚠ Datos insuficientes: '+r.meses_data+' mes(es) · '+mesesList+'</div>':activeMes?'<div style="font-size:9px;color:#888;margin-top:2px">Mes: '+MESES[activeMes]+' · Promedio anual: '+r.crit_pct.toFixed(0)+'%</div>':'<div style="font-size:9px;color:#888;margin-top:2px">Peor mes del año · Promedio: '+r.crit_pct.toFixed(0)+'%</div>';
   const popup='<div class="popup"><div class="pt" style="color:'+c+'">'+(r.concepto||'')+' · '+(r.region||'')+' / '+(r.zona||'')+'</div><div class="pn">'+(r.nombre||'Sin nombre')+'</div>'+(r.tienda?'<div style="font-size:10px;color:#bbb;margin:-3px 0 6px;font-weight:600;letter-spacing:.3px">'+r.tienda+'</div>':'')+'<div class="pl">📍 '+(r.ciudad||'')+', '+(r.departamento||'')+'</div><div class="pcb" style="background:'+critBg+';border-left:4px solid '+c+'"><div class="pc-num" style="color:'+c+'">'+critDisp.toFixed(0)+'%</div><div class="pc-r"><div class="pniv" style="color:'+c+'">'+r.nivel+'</div><div class="pbw"><div class="pbf" style="width:'+Math.min(100,critDisp)+'%;background:'+c+'"></div></div>'+avgLine+dHTML+'</div></div><div class="psc">'+scoreRows+'</div><div class="pkp"><div class="pk"><div class="pkv">'+Math.round(r.retiros||0)+'</div><div class="pkl">Retiros</div></div><div class="pk"><div class="pkv">'+Math.round(r.dias_aus||0)+'d</div><div class="pkl">Ausentismo</div></div><div class="pk"><div class="pkv">'+Math.round(r.accidentes||0)+'</div><div class="pkl">Accidentes</div></div><div class="pk"><div class="pkv">'+r.horas_extra_ratio.toFixed(1)+'%</div><div class="pkl">H.Extra</div></div><div class="pk"><div class="pkv">'+Math.round(r.proc_disc||0)+'</div><div class="pkl">Proc.Disc.</div></div><div class="pk"><div class="pkv">'+Math.round(r.quejas||0)+'</div><div class="pkl">Quejas</div></div></div><div class="ppl"><strong>AM:</strong> '+(r.am||'N/A')+'<br><strong>DM:</strong> '+(r.dm||'N/A')+'</div></div>';
   m.bindPopup(popup,{maxWidth:340,minWidth:280});
   m.on('click',()=>highlightItem(i));
@@ -105,7 +107,7 @@ function fil(){
   const cd=document.getElementById('fciud').value;
   // Base: tiendas cerradas/insuficientes o activas
   const isCer=activeNivel==='cerrada';
-  let base=(isCer?(DATA_EX[activeYear]||[]):(DATA[activeYear]||[])).map(r=>isCer?{...r,nivel:'Cerrada'}:r);
+  let base=(isCer?(DATA_EX[activeYear]||[]):(DATA[activeYear]||[])).map(r=>isCer?{...r,cerrada:true}:r);
   if(activeMes&&!isCer){
     base=base
       .filter(r=>r.mc&&r.mc[activeMes]!=null)
