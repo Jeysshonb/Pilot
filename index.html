@@ -21,6 +21,13 @@
       <button class="yb" data-y="2025" onclick="setYear(2025)">2025</button>
       <button class="yb active" data-y="2026" onclick="setYear(2026)">2026</button>
     </div>
+    <select id="fmes" onchange="setMes(parseInt(this.value))" style="border:1px solid #ddd;border-radius:6px;padding:4px 8px;font-size:12px;color:#555;background:#fff;cursor:pointer">
+      <option value="0">Todos los meses</option>
+      <option value="1">Ene</option><option value="2">Feb</option><option value="3">Mar</option>
+      <option value="4">Abr</option><option value="5">May</option><option value="6">Jun</option>
+      <option value="7">Jul</option><option value="8">Ago</option><option value="9">Sep</option>
+      <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dic</option>
+    </select>
     <div class="nivel-btns">
       <button class="nbtn a-all" id="nb-all"  onclick="setNivel('')">Todos</button>
       <button class="nbtn"       id="nb-high" onclick="setNivel('high')">🔴 High</button>

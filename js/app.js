@@ -1,4 +1,5 @@
-let activeYear=2026, activeNivel='', currentData=DATA[2026];
+let activeYear=2026, activeNivel='', activeMes=0, currentData=DATA[2026];
+function niv(c){return c>=71?'High':c>=36?'Medium':'Low';}
 let markerRefs={}, layerGroup;
 
 const map=L.map('map',{zoomControl:true,preferCanvas:true});
@@ -14,13 +15,13 @@ function makeMarker(r,i){
   const m=L.circleMarker([r.lat,r.lon],{radius:rad,fillColor:c,color:'#fff',weight:r.nivel==='High'?1.5:1,opacity:1,fillOpacity:r.nivel==='High'?0.95:0.85});
   const dSign=r.delta===null?'–':r.delta>0?'▲ +'+r.delta.toFixed(1)+'%':'▼ '+r.delta.toFixed(1)+'%';
   const dCol=r.delta===null?'#aaa':r.delta>0?'#CC0000':'#27A243';
-  const critUlt=r.crit_pct_ultimo!=null?r.crit_pct_ultimo:r.crit_pct;
-  m.bindTooltip('<strong>'+(r.nombre||'?')+'</strong> · '+(r.ciudad||'')+'<br>Criticidad: <strong style="color:'+c+'">'+critUlt.toFixed(0)+'%</strong> '+r.nivel+' &nbsp;<span style="color:'+dCol+';font-weight:700">'+dSign+'</span>',{direction:'top',opacity:.95});
+  const critDisp=r.crit_pct_max!=null?r.crit_pct_max:r.crit_pct; // peor mes o mes seleccionado
+  m.bindTooltip('<strong>'+(r.nombre||'?')+'</strong> · '+(r.ciudad||'')+'<br>Criticidad: <strong style="color:'+c+'">'+critDisp.toFixed(0)+'%</strong> '+r.nivel+' &nbsp;<span style="color:'+dCol+';font-weight:700">'+dSign+'</span>',{direction:'top',opacity:.95});
   const critBg=c+'18';
   const scoreRows=Object.entries(SL).map(([k,lbl])=>{const score=r[k]||0;const w=Math.min(100,(score/15)*100);const sc=score>10?'#CC0000':score>5?'#E8920A':'#27A243';const rm=SL_RAW[k];const disp=rm?rm.fmt(r[rm.raw]||0):score.toFixed(0);return '<div class="psr"><span class="psl">'+lbl+'</span><div class="psbw"><div class="psbf" style="width:'+w+'%;background:'+sc+'"></div></div><span class="psv">'+disp+'</span></div>';}).join('');
   const dHTML=r.delta!==null?'<div class="pdr"><span class="pdv" style="color:'+(r.delta>0?'#CC0000':'#27A243')+'">'+(r.delta>0?'▲ +':'▼ ')+Math.abs(r.delta).toFixed(1)+'%</span><span class="pdl">vs '+(activeYear-1)+' ('+r.prev_crit_pct.toFixed(0)+'%)</span></div>':'<div style="font-size:9px;opacity:.5;margin-top:4px">Sin dato año anterior</div>';
-  const avgLine=r.crit_pct_ultimo!=null?'<div style="font-size:9px;color:#888;margin-top:2px">Promedio anual: '+r.crit_pct.toFixed(0)+'%</div>':'';
-  const popup='<div class="popup"><div class="pt" style="color:'+c+'">'+(r.concepto||'')+' · '+(r.region||'')+' / '+(r.zona||'')+'</div><div class="pn">'+(r.nombre||'Sin nombre')+'</div>'+(r.tienda?'<div style="font-size:10px;color:#bbb;margin:-3px 0 6px;font-weight:600;letter-spacing:.3px">'+r.tienda+'</div>':'')+'<div class="pl">📍 '+(r.ciudad||'')+', '+(r.departamento||'')+'</div><div class="pcb" style="background:'+critBg+';border-left:4px solid '+c+'"><div class="pc-num" style="color:'+c+'">'+critUlt.toFixed(0)+'%</div><div class="pc-r"><div class="pniv" style="color:'+c+'">'+r.nivel+'</div><div class="pbw"><div class="pbf" style="width:'+critUlt+'%;background:'+c+'"></div></div>'+avgLine+dHTML+'</div></div><div class="psc">'+scoreRows+'</div><div class="pkp"><div class="pk"><div class="pkv">'+Math.round(r.retiros||0)+'</div><div class="pkl">Retiros</div></div><div class="pk"><div class="pkv">'+Math.round(r.dias_aus||0)+'d</div><div class="pkl">Ausentismo</div></div><div class="pk"><div class="pkv">'+Math.round(r.accidentes||0)+'</div><div class="pkl">Accidentes</div></div><div class="pk"><div class="pkv">'+r.horas_extra_ratio.toFixed(1)+'%</div><div class="pkl">H.Extra</div></div><div class="pk"><div class="pkv">'+Math.round(r.proc_disc||0)+'</div><div class="pkl">Proc.Disc.</div></div><div class="pk"><div class="pkv">'+Math.round(r.quejas||0)+'</div><div class="pkl">Quejas</div></div></div><div class="ppl"><strong>AM:</strong> '+(r.am||'N/A')+'<br><strong>DM:</strong> '+(r.dm||'N/A')+'</div></div>';
+  const avgLine=activeMes?'<div style="font-size:9px;color:#888;margin-top:2px">Mes: '+MESES[activeMes]+' · Promedio anual: '+r.crit_pct.toFixed(0)+'%</div>':'<div style="font-size:9px;color:#888;margin-top:2px">Peor mes del año · Promedio: '+r.crit_pct.toFixed(0)+'%</div>';
+  const popup='<div class="popup"><div class="pt" style="color:'+c+'">'+(r.concepto||'')+' · '+(r.region||'')+' / '+(r.zona||'')+'</div><div class="pn">'+(r.nombre||'Sin nombre')+'</div>'+(r.tienda?'<div style="font-size:10px;color:#bbb;margin:-3px 0 6px;font-weight:600;letter-spacing:.3px">'+r.tienda+'</div>':'')+'<div class="pl">📍 '+(r.ciudad||'')+', '+(r.departamento||'')+'</div><div class="pcb" style="background:'+critBg+';border-left:4px solid '+c+'"><div class="pc-num" style="color:'+c+'">'+critDisp.toFixed(0)+'%</div><div class="pc-r"><div class="pniv" style="color:'+c+'">'+r.nivel+'</div><div class="pbw"><div class="pbf" style="width:'+Math.min(100,critDisp)+'%;background:'+c+'"></div></div>'+avgLine+dHTML+'</div></div><div class="psc">'+scoreRows+'</div><div class="pkp"><div class="pk"><div class="pkv">'+Math.round(r.retiros||0)+'</div><div class="pkl">Retiros</div></div><div class="pk"><div class="pkv">'+Math.round(r.dias_aus||0)+'d</div><div class="pkl">Ausentismo</div></div><div class="pk"><div class="pkv">'+Math.round(r.accidentes||0)+'</div><div class="pkl">Accidentes</div></div><div class="pk"><div class="pkv">'+r.horas_extra_ratio.toFixed(1)+'%</div><div class="pkl">H.Extra</div></div><div class="pk"><div class="pkv">'+Math.round(r.proc_disc||0)+'</div><div class="pkl">Proc.Disc.</div></div><div class="pk"><div class="pkv">'+Math.round(r.quejas||0)+'</div><div class="pkl">Quejas</div></div></div><div class="ppl"><strong>AM:</strong> '+(r.am||'N/A')+'<br><strong>DM:</strong> '+(r.dm||'N/A')+'</div></div>';
   m.bindPopup(popup,{maxWidth:340,minWidth:280});
   m.on('click',()=>highlightItem(i));
   return m;
@@ -101,7 +102,14 @@ function fil(){
   const zn=document.getElementById('fzona').value;
   const cn=document.getElementById('fconc').value;
   const cd=document.getElementById('fciud').value;
-  currentData=(DATA[activeYear]||[]).filter(r=>
+  // Base: anual o filtrado por mes
+  let base=DATA[activeYear]||[];
+  if(activeMes){
+    base=base
+      .filter(r=>r.mc&&r.mc[activeMes]!=null)
+      .map(r=>{const mc=r.mc[activeMes];return{...r,crit_pct:mc,crit_pct_max:mc,crit_pct_ultimo:mc,nivel:niv(mc)};});
+  }
+  currentData=base.filter(r=>
     (!s||[r.nombre,r.ciudad,r.departamento,r.am,r.dm,r.tienda||''].join(' ').toLowerCase().includes(s))
     &&(!rg||r.region.toLowerCase()===rg)
     &&(!zn||r.zona.toLowerCase()===zn)
@@ -112,8 +120,10 @@ function fil(){
   renderLista(currentData);buildMap(currentData);updateResumen(currentData);renderKPIs(currentData);
 }
 
+function setMes(mes){activeMes=mes;document.getElementById('fmes').value=mes;fil();}
+
 function setYear(year){
-  activeYear=year;
+  activeYear=year;activeMes=0;document.getElementById('fmes').value=0;
   document.querySelectorAll('.yb').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.y)===year));
   const mesF=FIRST_MES&&FIRST_MES[year]||1;
   const mesL=LAST_MES[year]||1;
