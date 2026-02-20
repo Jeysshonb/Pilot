@@ -20,7 +20,8 @@ function makeMarker(r,i){
   const critBg=c+'18';
   const scoreRows=Object.entries(SL).map(([k,lbl])=>{const score=r[k]||0;const w=Math.min(100,(score/15)*100);const sc=score>10?'#CC0000':score>5?'#E8920A':'#27A243';const rm=SL_RAW[k];const disp=rm?rm.fmt(r[rm.raw]||0):score.toFixed(0);return '<div class="psr"><span class="psl">'+lbl+'</span><div class="psbw"><div class="psbf" style="width:'+w+'%;background:'+sc+'"></div></div><span class="psv">'+disp+'</span></div>';}).join('');
   const dHTML=r.delta!==null?'<div class="pdr"><span class="pdv" style="color:'+(r.delta>0?'#CC0000':'#27A243')+'">'+(r.delta>0?'▲ +':'▼ ')+Math.abs(r.delta).toFixed(1)+'%</span><span class="pdl">vs '+(activeYear-1)+' ('+r.prev_crit_pct.toFixed(0)+'%)</span></div>':'<div style="font-size:9px;opacity:.5;margin-top:4px">Sin dato año anterior</div>';
-  const avgLine=activeMes?'<div style="font-size:9px;color:#888;margin-top:2px">Mes: '+MESES[activeMes]+' · Promedio anual: '+r.crit_pct.toFixed(0)+'%</div>':'<div style="font-size:9px;color:#888;margin-top:2px">Peor mes del año · Promedio: '+r.crit_pct.toFixed(0)+'%</div>';
+  const mesesList=r.mc?Object.keys(r.mc).sort((a,b)=>a-b).map(m=>MESES[m]).join(', '):'';
+  const avgLine=r.nivel==='Cerrada'?'<div style="font-size:9px;color:#999;margin-top:2px">⚠ Datos insuficientes: '+r.meses_data+' mes(es) · '+mesesList+'</div>':activeMes?'<div style="font-size:9px;color:#888;margin-top:2px">Mes: '+MESES[activeMes]+' · Promedio anual: '+r.crit_pct.toFixed(0)+'%</div>':'<div style="font-size:9px;color:#888;margin-top:2px">Peor mes del año · Promedio: '+r.crit_pct.toFixed(0)+'%</div>';
   const popup='<div class="popup"><div class="pt" style="color:'+c+'">'+(r.concepto||'')+' · '+(r.region||'')+' / '+(r.zona||'')+'</div><div class="pn">'+(r.nombre||'Sin nombre')+'</div>'+(r.tienda?'<div style="font-size:10px;color:#bbb;margin:-3px 0 6px;font-weight:600;letter-spacing:.3px">'+r.tienda+'</div>':'')+'<div class="pl">📍 '+(r.ciudad||'')+', '+(r.departamento||'')+'</div><div class="pcb" style="background:'+critBg+';border-left:4px solid '+c+'"><div class="pc-num" style="color:'+c+'">'+critDisp.toFixed(0)+'%</div><div class="pc-r"><div class="pniv" style="color:'+c+'">'+r.nivel+'</div><div class="pbw"><div class="pbf" style="width:'+Math.min(100,critDisp)+'%;background:'+c+'"></div></div>'+avgLine+dHTML+'</div></div><div class="psc">'+scoreRows+'</div><div class="pkp"><div class="pk"><div class="pkv">'+Math.round(r.retiros||0)+'</div><div class="pkl">Retiros</div></div><div class="pk"><div class="pkv">'+Math.round(r.dias_aus||0)+'d</div><div class="pkl">Ausentismo</div></div><div class="pk"><div class="pkv">'+Math.round(r.accidentes||0)+'</div><div class="pkl">Accidentes</div></div><div class="pk"><div class="pkv">'+r.horas_extra_ratio.toFixed(1)+'%</div><div class="pkl">H.Extra</div></div><div class="pk"><div class="pkv">'+Math.round(r.proc_disc||0)+'</div><div class="pkl">Proc.Disc.</div></div><div class="pk"><div class="pkv">'+Math.round(r.quejas||0)+'</div><div class="pkl">Quejas</div></div></div><div class="ppl"><strong>AM:</strong> '+(r.am||'N/A')+'<br><strong>DM:</strong> '+(r.dm||'N/A')+'</div></div>';
   m.bindPopup(popup,{maxWidth:340,minWidth:280});
   m.on('click',()=>highlightItem(i));
@@ -102,9 +103,10 @@ function fil(){
   const zn=document.getElementById('fzona').value;
   const cn=document.getElementById('fconc').value;
   const cd=document.getElementById('fciud').value;
-  // Base: anual o filtrado por mes
-  let base=DATA[activeYear]||[];
-  if(activeMes){
+  // Base: tiendas cerradas/insuficientes o activas
+  const isCer=activeNivel==='cerrada';
+  let base=(isCer?(DATA_EX[activeYear]||[]):(DATA[activeYear]||[])).map(r=>isCer?{...r,nivel:'Cerrada'}:r);
+  if(activeMes&&!isCer){
     base=base
       .filter(r=>r.mc&&r.mc[activeMes]!=null)
       .map(r=>{const mc=r.mc[activeMes];return{...r,crit_pct:mc,crit_pct_max:mc,crit_pct_ultimo:mc,nivel:niv(mc)};});
@@ -115,7 +117,7 @@ function fil(){
     &&(!zn||r.zona.toLowerCase()===zn)
     &&(!cn||r.concepto.toLowerCase()===cn)
     &&(!cd||r.ciudad.toLowerCase()===cd)
-    &&(!activeNivel||r.nivel.toLowerCase()===activeNivel)
+    &&(!activeNivel||isCer||r.nivel.toLowerCase()===activeNivel)
   );
   renderLista(currentData);buildMap(currentData);updateResumen(currentData);renderKPIs(currentData);
 }
@@ -136,10 +138,10 @@ function setYear(year){
 
 function setNivel(nivel){
   activeNivel=nivel;
-  const map_={'':'all','high':'high','medium':'med','low':'low'};
-  ['all','high','med','low'].forEach(k=>{const el=document.getElementById('nb-'+k);if(el){el.className='nbtn';if(map_[nivel]===k)el.className='nbtn a-'+k;}});
+  const map_={'':'all','high':'high','medium':'med','low':'low','cerrada':'cer'};
+  ['all','high','med','low','cer'].forEach(k=>{const el=document.getElementById('nb-'+k);if(el){el.className='nbtn';if(map_[nivel]===k)el.className='nbtn a-'+k;}});
   ['rc-high','rc-med','rc-low'].forEach(id=>{const rc=document.getElementById(id);if(rc){rc.style.borderColor='transparent';}});
-  if(nivel){const rcMap={high:'rc-high',medium:'rc-med',low:'rc-low'};const rc=document.getElementById(rcMap[nivel]);if(rc)rc.style.borderColor=COLOR[nivel.charAt(0).toUpperCase()+nivel.slice(1)]||'#CC0000';}
+  if(nivel&&nivel!=='cerrada'){const rcMap={high:'rc-high',medium:'rc-med',low:'rc-low'};const rc=document.getElementById(rcMap[nivel]);if(rc)rc.style.borderColor=COLOR[nivel.charAt(0).toUpperCase()+nivel.slice(1)]||'#CC0000';}
   fil();
 }
 

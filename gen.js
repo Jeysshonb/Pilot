@@ -58,42 +58,45 @@ function aggByYear(yr){
       if(r.mes>groups[r.ceco]._last.mes)groups[r.ceco]._last=r;
       groups[r.ceco]._count++;
       if(r.crit_pct>groups[r.ceco]._max_crit)groups[r.ceco]._max_crit=r.crit_pct;
-      groups[r.ceco]._mc[r.mes]=r.crit_pct; // último valor del mes (por si hay duplicados)
+      groups[r.ceco]._mc[r.mes]=r.crit_pct;
       SUM_KEYS.forEach(k=>groups[r.ceco][k]+=r[k]);
       AVG_KEYS.forEach(k=>groups[r.ceco][k]+=r[k]);
     }
   });
 
-  // Meses máximos disponibles para este año → umbral mínimo = 50% (capped en 12)
+  // Meses máximos disponibles → umbral mínimo = 50% (cap en 12)
   const allCounts=Object.values(groups).map(g=>g._count);
-  const maxMeses=Math.min(12,Math.max(...allCounts)); // cap 12: ignora duplicados en CSV
+  const maxMeses=Math.min(12,Math.max(...allCounts));
   const minMeses=Math.ceil(maxMeses*0.5);
-  const excluded=Object.values(groups).filter(g=>g._count<minMeses).length;
-  console.log(`  ${yr}: max=${maxMeses} meses, umbral>=${minMeses}, excluidas=${excluded} tiendas`);
+  const nEx=Object.values(groups).filter(g=>g._count<minMeses).length;
+  console.log(`  ${yr}: max=${maxMeses} meses, umbral>=${minMeses}, excluidas=${nEx} tiendas`);
 
-  return Object.values(groups)
-    .filter(g=>g._count>=minMeses)  // excluir tiendas con datos insuficientes
-    .map(g=>{
-      const last=g._last; const cnt=g._count;
-      const result={};
-      SUM_KEYS.forEach(k=>result[k]=parseFloat(g[k].toFixed(1)));
-      AVG_KEYS.forEach(k=>result[k]=parseFloat((g[k]/cnt).toFixed(2)));
-      result.crit_pct=parseFloat(result.crit_pct.toFixed(1));
-      return{
-        anio:yr,mes:last.mes,meses_data:cnt,
-        ceco:last.ceco,tienda:last.tienda,
-        ...result,
-        nivel:nivel(g._max_crit),             // color = peor mes del año
-        crit_pct_max:parseFloat(g._max_crit.toFixed(1)),      // peor mes (para popup)
-        crit_pct_ultimo:parseFloat(last.crit_pct.toFixed(1)), // último mes (para popup)
-        mc:g._mc,                                              // crit_pct por mes {1:78,2:71,...}
-        region:last.region,zona:last.zona,
-        nombre:last.nombre,ciudad:last.ciudad,departamento:last.departamento,
-        am:last.am,dm:last.dm,concepto:last.concepto,
-        tipo_area:last.tipo_area,tipo_ciudad:last.tipo_ciudad,
-        lat:last.lat,lon:last.lon,
-      };
-    });
+  const toRec=(g)=>{
+    const last=g._last; const cnt=g._count;
+    const result={};
+    SUM_KEYS.forEach(k=>result[k]=parseFloat(g[k].toFixed(1)));
+    AVG_KEYS.forEach(k=>result[k]=parseFloat((g[k]/cnt).toFixed(2)));
+    result.crit_pct=parseFloat(result.crit_pct.toFixed(1));
+    return{
+      anio:yr,mes:last.mes,meses_data:cnt,
+      ceco:last.ceco,tienda:last.tienda,
+      ...result,
+      nivel:nivel(g._max_crit),             // color = peor mes del año
+      crit_pct_max:parseFloat(g._max_crit.toFixed(1)),
+      crit_pct_ultimo:parseFloat(last.crit_pct.toFixed(1)),
+      mc:g._mc,
+      region:last.region,zona:last.zona,
+      nombre:last.nombre,ciudad:last.ciudad,departamento:last.departamento,
+      am:last.am,dm:last.dm,concepto:last.concepto,
+      tipo_area:last.tipo_area,tipo_ciudad:last.tipo_ciudad,
+      lat:last.lat,lon:last.lon,
+    };
+  };
+
+  return {
+    inc: Object.values(groups).filter(g=>g._count>=minMeses).map(toRec),
+    ex:  Object.values(groups).filter(g=>g._count<minMeses).map(toRec),
+  };
 }
 
 function withDelta(arr,prevMap){
@@ -103,9 +106,10 @@ function withDelta(arr,prevMap){
   });
 }
 
-const y24=aggByYear(2024);
-const y25=aggByYear(2025);
-const y26=aggByYear(2026);
+const r24=aggByYear(2024); const r25=aggByYear(2025); const r26=aggByYear(2026);
+const y24=r24.inc,ex24=r24.ex;
+const y25=r25.inc,ex25=r25.ex;
+const y26=r26.inc,ex26=r26.ex;
 
 const m24={};y24.forEach(r=>m24[r.ceco]=r);
 const m25={};y25.forEach(r=>m25[r.ceco]=r);
@@ -117,7 +121,8 @@ const d26=withDelta(y26,m25);
 const LAST_MES={2024:Math.max(...y24.map(r=>r.mes)),2025:Math.max(...y25.map(r=>r.mes)),2026:Math.max(...y26.map(r=>r.mes))};
 const FIRST_MES={2024:Math.min(...y24.map(r=>r.mes)),2025:Math.min(...y25.map(r=>r.mes)),2026:Math.min(...y26.map(r=>r.mes))};
 
-console.log('Registros finales: 2024='+d24.length+' 2025='+d25.length+' 2026='+d26.length);
+console.log('Incluidas:  2024='+d24.length+' 2025='+d25.length+' 2026='+d26.length);
+console.log('Excluidas:  2024='+ex24.length+' 2025='+ex25.length+' 2026='+ex26.length);
 
 const out=
 `const DATA = {
@@ -125,10 +130,15 @@ const out=
   2025: ${JSON.stringify(d25)},
   2026: ${JSON.stringify(d26)}
 };
+const DATA_EX = {
+  2024: ${JSON.stringify(ex24)},
+  2025: ${JSON.stringify(ex25)},
+  2026: ${JSON.stringify(ex26)}
+};
 const LAST_MES = ${JSON.stringify(LAST_MES)};
 const FIRST_MES = ${JSON.stringify(FIRST_MES)};
 const MESES = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const COLOR = {High:'#CC0000',Medium:'#E8920A',Low:'#27A243'};
+const COLOR = {High:'#CC0000',Medium:'#E8920A',Low:'#27A243',Cerrada:'#999'};
 const SL = {s_fte:'FTE / HC',s_rotacion:'Rotación mes',s_aus:'Ausentismo',s_aus_med:'Aus. Médico',s_acc:'Accidentalidad',s_disc:'Proc. Disc.',s_quejas:'Quejas',s_hextra:'Horas Extra'};
 `;
 
