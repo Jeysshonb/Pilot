@@ -13,7 +13,7 @@ function makeMarker(r,i){
   const c=COLOR[r.nivel]||'#888';
   const rad=r.nivel==='High'?8:r.nivel==='Low'?4:5.5;
   const fillOp=r.cerrada?0.4:(r.nivel==='High'?0.95:0.85);
-  const m=L.circleMarker([r.lat,r.lon],{radius:rad,fillColor:c,color:r.cerrada?c:'#fff',weight:r.cerrada?1.5:(r.nivel==='High'?1.5:1),opacity:1,fillOpacity:fillOp,dashArray:r.cerrada?'4,3':undefined});
+  const m=L.circleMarker([r.lat,r.lon],{radius:rad,fillColor:c,color:r.cerrada?c:'#fff',weight:r.cerrada?1.5:(r.nivel==='High'?1.5:1),opacity:1,fillOpacity:fillOp,dashArray:r.cerrada?'4,3':null});
   const dSign=r.delta===null?'–':r.delta>0?'▲ +'+r.delta.toFixed(1)+'%':'▼ '+r.delta.toFixed(1)+'%';
   const dCol=r.delta===null?'#aaa':r.delta>0?'#CC0000':'#27A243';
   const critDisp=r.crit_pct_max!=null?r.crit_pct_max:r.crit_pct; // peor mes o mes seleccionado
@@ -35,12 +35,29 @@ function buildMap(data){
   layerGroup=L.layerGroup().addTo(map);
   markerRefs={};
   const order=[...data.keys()].sort((a,b)=>{const o={Low:0,Medium:1,High:2};return(o[data[a].nivel]||0)-(o[data[b].nivel]||0);});
-  order.forEach(i=>{const m=makeMarker(data[i],i);markerRefs[i]=m;layerGroup.addLayer(m);});
+  const pts=[];
+  order.forEach(i=>{
+    const r=data[i];
+    if(!r.lat||!r.lon)return; // skip tiendas sin coordenadas válidas
+    const m=makeMarker(r,i);
+    markerRefs[i]=m;
+    layerGroup.addLayer(m);
+    if(activeNivel==='cerrada')pts.push([r.lat,r.lon]);
+  });
+  // Zoom automático al conjunto de cerradas para que sean visibles
+  if(activeNivel==='cerrada'&&pts.length>0){
+    if(pts.length===1)map.setView(pts[0],14);
+    else map.fitBounds(pts,{padding:[50,50],maxZoom:12});
+  }
 }
 
 function renderLista(data){
   const el=document.getElementById('tab-lista');
-  if(!data.length){el.innerHTML='<div style="text-align:center;padding:40px 20px;color:#ccc;font-size:13px">Sin resultados</div>';return;}
+  if(!data.length){
+    const msg=activeNivel==='cerrada'?'Sin tiendas cerradas/insuficientes para '+activeYear+'<br><span style="font-size:11px">Prueba con 2024 o 2025</span>':'Sin resultados';
+    el.innerHTML='<div style="text-align:center;padding:40px 20px;color:#ccc;font-size:13px">'+msg+'</div>';
+    return;
+  }
   el.innerHTML=data.map((r,i)=>{
     const c=COLOR[r.nivel]||'#888';
     const pct=r.crit_pct.toFixed(0);
