@@ -86,9 +86,10 @@ function updateResumen(data){
   const pH=prev.filter(r=>r.nivel==='High').length;
   const pM=prev.filter(r=>r.nivel==='Medium').length;
   const pL=prev.filter(r=>r.nivel==='Low').length;
+  const hasPrev=prev.length>0;
   const fD=(d,yr,pCnt,yCnt)=>{
-    if(!pCnt&&d===null)return'';
-    const counts='<div style="font-size:10px;color:#aaa;margin-top:5px;white-space:nowrap">'+(pCnt?'<span>'+(yr-1)+': <strong style="color:#888">'+pCnt+'</strong></span> → ':'')+'<span>'+yr+': <strong style="color:#777">'+yCnt+'</strong></span></div>';
+    if(!hasPrev&&d===null)return'';
+    const counts='<div style="font-size:10px;color:#aaa;margin-top:5px;white-space:nowrap">'+(hasPrev?'<span>'+(yr-1)+': <strong style="color:#888">'+pCnt+'</strong></span> → ':'')+'<span>'+yr+': <strong style="color:#777">'+yCnt+'</strong></span></div>';
     if(d===null)return counts;
     const s=d>0?'▲ +'+d.toFixed(1)+'%':'▼ '+Math.abs(d).toFixed(1)+'%';
     const c=d>0?'#CC0000':'#27A243';
