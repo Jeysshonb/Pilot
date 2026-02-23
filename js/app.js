@@ -86,13 +86,13 @@ function updateResumen(data){
   const pH=prev.filter(r=>r.nivel==='High').length;
   const pM=prev.filter(r=>r.nivel==='Medium').length;
   const pL=prev.filter(r=>r.nivel==='Low').length;
-  const fD=(d,yr,pCnt)=>{
+  const fD=(d,yr,pCnt,yCnt)=>{
     if(!pCnt&&d===null)return'';
-    if(d===null)return'<div style="font-size:10px;margin-top:3px;color:#aaa;white-space:nowrap">'+(yr-1)+': '+pCnt+'</div>';
+    const counts='<div style="font-size:10px;color:#aaa;margin-top:5px;white-space:nowrap">'+(pCnt?'<span>'+(yr-1)+': <strong style="color:#888">'+pCnt+'</strong></span> → ':'')+'<span>'+yr+': <strong style="color:#777">'+yCnt+'</strong></span></div>';
+    if(d===null)return counts;
     const s=d>0?'▲ +'+d.toFixed(1)+'%':'▼ '+Math.abs(d).toFixed(1)+'%';
     const c=d>0?'#CC0000':'#27A243';
-    const prev=pCnt>0?'<span style="color:#aaa">'+(yr-1)+': '+pCnt+' → </span>':'';
-    return'<div style="font-size:10px;margin-top:3px;white-space:nowrap">'+prev+'<span style="color:#aaa">'+yr+' </span><span style="color:'+c+';font-weight:700">'+s+'</span></div>';
+    return counts+'<div style="font-size:11px;font-weight:700;margin-top:2px;color:'+c+'">'+s+'</div>';
   };
   document.getElementById('cntH').textContent=H.length;
   document.getElementById('cntM').textContent=M.length;
@@ -100,9 +100,9 @@ function updateResumen(data){
   document.getElementById('pctH').textContent=(H.length/t*100).toFixed(1)+'%';
   document.getElementById('pctM').textContent=(M.length/t*100).toFixed(1)+'%';
   document.getElementById('pctL').textContent=(L.length/t*100).toFixed(1)+'%';
-  document.getElementById('dltH').innerHTML=fD(aD(H),activeYear,pH);
-  document.getElementById('dltM').innerHTML=fD(aD(M),activeYear,pM);
-  document.getElementById('dltL').innerHTML=fD(aD(L),activeYear,pL);
+  document.getElementById('dltH').innerHTML=fD(aD(H),activeYear,pH,H.length);
+  document.getElementById('dltM').innerHTML=fD(aD(M),activeYear,pM,M.length);
+  document.getElementById('dltL').innerHTML=fD(aD(L),activeYear,pL,L.length);
   document.getElementById('lgH').textContent=H.length;
   document.getElementById('lgM').textContent=M.length;
   document.getElementById('lgL').textContent=L.length;
