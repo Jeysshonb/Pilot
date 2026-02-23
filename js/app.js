@@ -81,16 +81,20 @@ function avg(arr,k){const v=arr.map(r=>r[k]).filter(x=>x>0);return v.length?v.re
 function updateResumen(data){
   const H=data.filter(r=>r.nivel==='High'),M=data.filter(r=>r.nivel==='Medium'),L=data.filter(r=>r.nivel==='Low'),t=data.length||1;
   const aD=(arr)=>{const v=arr.map(r=>r.delta).filter(x=>x!==null&&x!==undefined);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null;};
-  // Conteos del año anterior para mostrar comparativo directo
-  const prev=DATA[activeYear-1]||[];
-  const pH=prev.filter(r=>r.nivel==='High').length;
-  const pM=prev.filter(r=>r.nivel==='Medium').length;
-  const pL=prev.filter(r=>r.nivel==='Low').length;
-  const hasPrev=prev.length>0;
+  // Conteos del año anterior — si hay mes activo, comparar el mismo mes del año anterior
+  const prevYear=DATA[activeYear-1]||[];
+  let prevData=prevYear;
+  if(activeMes&&prevYear.length){
+    prevData=prevYear.filter(r=>r.mc&&r.mc[activeMes]!=null).map(r=>({...r,crit_pct:r.mc[activeMes],nivel:niv(r.mc[activeMes])}));
+  }
+  const pH=prevData.filter(r=>r.nivel==='High').length;
+  const pM=prevData.filter(r=>r.nivel==='Medium').length;
+  const pL=prevData.filter(r=>r.nivel==='Low').length;
+  const hasPrev=prevYear.length>0;
   const fD=(d,yr,pCnt,yCnt)=>{
     if(!hasPrev&&d===null)return'';
     const counts='<div style="font-size:10px;color:#aaa;margin-top:5px;white-space:nowrap">'+(hasPrev?'<span>'+(yr-1)+': <strong style="color:#888">'+pCnt+'</strong></span> → ':'')+'<span>'+yr+': <strong style="color:#777">'+yCnt+'</strong></span></div>';
-    if(d===null)return counts;
+    if(d===null||activeMes)return counts; // sin flecha cuando hay filtro de mes (delta anual no aplica)
     const s=d>0?'▲ +'+d.toFixed(1)+'%':'▼ '+Math.abs(d).toFixed(1)+'%';
     const c=d>0?'#CC0000':'#27A243';
     return counts+'<div style="font-size:11px;font-weight:700;margin-top:2px;color:'+c+'">'+s+'</div>';
