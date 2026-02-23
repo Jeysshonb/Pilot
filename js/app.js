@@ -81,16 +81,28 @@ function avg(arr,k){const v=arr.map(r=>r[k]).filter(x=>x>0);return v.length?v.re
 function updateResumen(data){
   const H=data.filter(r=>r.nivel==='High'),M=data.filter(r=>r.nivel==='Medium'),L=data.filter(r=>r.nivel==='Low'),t=data.length||1;
   const aD=(arr)=>{const v=arr.map(r=>r.delta).filter(x=>x!==null&&x!==undefined);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null;};
-  const fD=(d,yr)=>{if(d===null)return'';const s=d>0?'▲ +'+d.toFixed(1)+'%':'▼ '+Math.abs(d).toFixed(1)+'%';const c=d>0?'#CC0000':'#27A243';return'<span style="color:'+c+'">'+s+' vs '+(yr-1)+'</span>';};
+  // Conteos del año anterior para mostrar comparativo directo
+  const prev=DATA[activeYear-1]||[];
+  const pH=prev.filter(r=>r.nivel==='High').length;
+  const pM=prev.filter(r=>r.nivel==='Medium').length;
+  const pL=prev.filter(r=>r.nivel==='Low').length;
+  const pt=prev.length||1;
+  const fD=(d,yr,pCnt,pTot)=>{
+    const prevLine=pCnt>0?'<div style="font-size:10px;color:#aaa;margin-bottom:1px">'+(yr-1)+': '+pCnt+' <span style="opacity:.7">('+( pCnt/pTot*100).toFixed(1)+'%)</span></div>':'';
+    if(d===null)return prevLine;
+    const s=d>0?'▲ +'+d.toFixed(1)+'%':'▼ '+Math.abs(d).toFixed(1)+'%';
+    const c=d>0?'#CC0000':'#27A243';
+    return prevLine+'<span style="color:'+c+'">'+s+' vs '+(yr-1)+'</span>';
+  };
   document.getElementById('cntH').textContent=H.length;
   document.getElementById('cntM').textContent=M.length;
   document.getElementById('cntL').textContent=L.length;
   document.getElementById('pctH').textContent=(H.length/t*100).toFixed(1)+'%';
   document.getElementById('pctM').textContent=(M.length/t*100).toFixed(1)+'%';
   document.getElementById('pctL').textContent=(L.length/t*100).toFixed(1)+'%';
-  document.getElementById('dltH').innerHTML=fD(aD(H),activeYear);
-  document.getElementById('dltM').innerHTML=fD(aD(M),activeYear);
-  document.getElementById('dltL').innerHTML=fD(aD(L),activeYear);
+  document.getElementById('dltH').innerHTML=fD(aD(H),activeYear,pH,pt);
+  document.getElementById('dltM').innerHTML=fD(aD(M),activeYear,pM,pt);
+  document.getElementById('dltL').innerHTML=fD(aD(L),activeYear,pL,pt);
   document.getElementById('lgH').textContent=H.length;
   document.getElementById('lgM').textContent=M.length;
   document.getElementById('lgL').textContent=L.length;
