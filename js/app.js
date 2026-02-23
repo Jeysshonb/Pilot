@@ -88,12 +88,11 @@ function updateResumen(data){
   const pL=prev.filter(r=>r.nivel==='Low').length;
   const fD=(d,yr,pCnt)=>{
     if(!pCnt&&d===null)return'';
-    const prevTxt=pCnt>0?'<span style="color:#bbb">'+(yr-1)+': <strong style="color:#999">'+pCnt+'</strong></span>':'';
-    if(d===null)return'<div style="font-size:10px;margin-top:3px">'+prevTxt+'</div>';
+    if(d===null)return'<div style="font-size:10px;margin-top:3px;color:#aaa;white-space:nowrap">'+(yr-1)+': '+pCnt+'</div>';
     const s=d>0?'▲ +'+d.toFixed(1)+'%':'▼ '+Math.abs(d).toFixed(1)+'%';
     const c=d>0?'#CC0000':'#27A243';
-    const arrow='<span style="color:#bbb">'+yr+' </span><span style="color:'+c+';font-weight:700">'+s+'</span>';
-    return'<div style="font-size:10px;margin-top:3px">'+prevTxt+(pCnt?' &nbsp;·&nbsp; ':'')+arrow+'</div>';
+    const prev=pCnt>0?'<span style="color:#aaa">'+(yr-1)+': '+pCnt+' → </span>':'';
+    return'<div style="font-size:10px;margin-top:3px;white-space:nowrap">'+prev+'<span style="color:#aaa">'+yr+' </span><span style="color:'+c+';font-weight:700">'+s+'</span></div>';
   };
   document.getElementById('cntH').textContent=H.length;
   document.getElementById('cntM').textContent=M.length;
