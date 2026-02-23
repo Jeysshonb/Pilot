@@ -93,7 +93,8 @@ function updateResumen(data){
   const hasPrev=prevYear.length>0;
   const fD=(d,yr,pCnt,yCnt)=>{
     if(!hasPrev&&d===null)return'';
-    const counts='<div style="font-size:10px;color:#aaa;margin-top:5px;white-space:nowrap">'+(hasPrev?'<span>'+(yr-1)+': <strong style="color:#888">'+pCnt+'</strong></span> → ':'')+'<span>'+yr+': <strong style="color:#777">'+yCnt+'</strong></span></div>';
+    const y0="'"+String(yr-1).slice(-2),y1="'"+String(yr).slice(-2);
+    const counts='<div style="font-size:9px;color:#aaa;margin-top:5px;line-height:1.6">'+(hasPrev?'<div>'+y0+': <strong style="color:#888">'+pCnt+'</strong> → '+y1+': <strong style="color:#777">'+yCnt+'</strong></div>':'<div>'+y1+': <strong style="color:#777">'+yCnt+'</strong></div>')+'</div>';
     if(d===null||activeMes)return counts; // sin flecha cuando hay filtro de mes (delta anual no aplica)
     const s=d>0?'▲ +'+d.toFixed(1)+'%':'▼ '+Math.abs(d).toFixed(1)+'%';
     const c=d>0?'#CC0000':'#27A243';
