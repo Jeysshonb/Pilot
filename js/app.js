@@ -1,4 +1,4 @@
-let activeYear=2026, activeNivel='', activeMes=0, currentData=DATA[2026];
+let activeYear=2026, activeNivel='', activeMes=0, currentData=DATA[2026], showCerradasOverlay=false, cerradasOverlayLayer=null;
 function niv(c){return c>=71?'High':c>=36?'Medium':'Low';}
 let markerRefs={}, layerGroup;
 
@@ -26,7 +26,7 @@ function makeMarker(r,i){
   const avgLine=r.cerrada?'<div style="font-size:9px;color:#999;margin-top:2px">⚠ Datos insuficientes: '+r.meses_data+' mes(es) · '+mesesList+'</div>':activeMes?'<div style="font-size:9px;color:#888;margin-top:2px">Mes: '+MESES[activeMes]+' · Promedio anual: '+r.crit_pct.toFixed(0)+'%</div>':'<div style="font-size:9px;color:#888;margin-top:2px">Peor mes del año · Promedio: '+r.crit_pct.toFixed(0)+'%</div>';
   const popup='<div class="popup"><div class="pt" style="color:'+c+'">'+(r.concepto||'')+' · '+(r.region||'')+' / '+(r.zona||'')+'</div><div class="pn">'+(r.nombre||'Sin nombre')+'</div>'+(r.tienda?'<div style="font-size:10px;color:#bbb;margin:-3px 0 6px;font-weight:600;letter-spacing:.3px">'+r.tienda+'</div>':'')+'<div class="pl">📍 '+(r.ciudad||'')+', '+(r.departamento||'')+'</div><div class="pcb" style="background:'+critBg+';border-left:4px solid '+c+'"><div class="pc-num" style="color:'+c+'">'+critDisp.toFixed(0)+'%</div><div class="pc-r"><div class="pniv" style="color:'+c+'">'+r.nivel+'</div><div class="pbw"><div class="pbf" style="width:'+Math.min(100,critDisp)+'%;background:'+c+'"></div></div>'+avgLine+dHTML+'</div></div><div class="psc">'+scoreRows+'</div><div class="pkp"><div class="pk"><div class="pkv">'+Math.round(r.retiros||0)+'</div><div class="pkl">Retiros</div></div><div class="pk"><div class="pkv">'+Math.round(r.dias_aus||0)+'d</div><div class="pkl">Ausentismo</div></div><div class="pk"><div class="pkv">'+Math.round(r.accidentes||0)+'</div><div class="pkl">Accidentes</div></div><div class="pk"><div class="pkv">'+r.horas_extra_ratio.toFixed(1)+'%</div><div class="pkl">H.Extra</div></div><div class="pk"><div class="pkv">'+Math.round(r.proc_disc||0)+'</div><div class="pkl">Proc.Disc.</div></div><div class="pk"><div class="pkv">'+Math.round(r.quejas||0)+'</div><div class="pkl">Quejas</div></div><div class="pk"><div class="pkv">$'+Math.round(r.productividad_hc||0).toLocaleString('es-CO')+'</div><div class="pkl">Product./HC</div></div></div><div class="ppl"><strong>AM:</strong> '+(r.am||'N/A')+'<br><strong>DM:</strong> '+(r.dm||'N/A')+'</div></div>';
   m.bindPopup(popup,{maxWidth:340,minWidth:280});
-  m.on('click',()=>highlightItem(i));
+  m.on('click',()=>{if(i!==null)highlightItem(i);});
   return m;
 }
 
@@ -49,6 +49,23 @@ function buildMap(data){
     if(pts.length===1)map.setView(pts[0],14);
     else map.fitBounds(pts,{padding:[50,50],maxZoom:12});
   }
+}
+
+function buildCerradasOverlay(){
+  if(cerradasOverlayLayer)cerradasOverlayLayer.clearLayers();
+  if(!showCerradasOverlay||activeNivel==='cerrada')return;
+  if(!cerradasOverlayLayer){cerradasOverlayLayer=L.layerGroup().addTo(map);}
+  (DATA_EX[activeYear]||[]).forEach(r=>{
+    if(!r.lat||!r.lon)return;
+    cerradasOverlayLayer.addLayer(makeMarker({...r,cerrada:true},null));
+  });
+}
+
+function toggleCerradasOverlay(){
+  showCerradasOverlay=!showCerradasOverlay;
+  const btn=document.getElementById('nb-cer-ov');
+  if(btn)btn.className='nbtn'+(showCerradasOverlay?' a-ov':'');
+  buildCerradasOverlay();
 }
 
 function renderLista(data){
@@ -155,7 +172,7 @@ function fil(){
     &&(!cd||r.ciudad.toLowerCase()===cd)
     &&(!activeNivel||isCer||r.nivel.toLowerCase()===activeNivel)
   );
-  renderLista(currentData);buildMap(currentData);updateResumen(currentData);renderKPIs(currentData);
+  renderLista(currentData);buildMap(currentData);updateResumen(currentData);renderKPIs(currentData);buildCerradasOverlay();
 }
 
 function setMes(mes){activeMes=mes;document.getElementById('fmes').value=mes;fil();}
@@ -173,6 +190,8 @@ function setYear(year){
 }
 
 function setNivel(nivel){
+  // Si el usuario entra a "Cerradas", apagar overlay para no duplicar
+  if(nivel==='cerrada'&&showCerradasOverlay)toggleCerradasOverlay();
   activeNivel=nivel;
   const map_={'':'all','high':'high','medium':'med','low':'low','cerrada':'cer'};
   ['all','high','med','low','cer'].forEach(k=>{const el=document.getElementById('nb-'+k);if(el){el.className='nbtn';if(map_[nivel]===k)el.className='nbtn a-'+k;}});
