@@ -1,5 +1,5 @@
 const fs=require('fs');
-const CSV='KPI_MASTER_CON_CRITICIDAD_WEIGHTED_20260225_115617.csv';
+const CSV='KPI_MASTER_CON_CRITICIDAD_WEIGHTED_20260226_091713.csv';
 
 function n(v){return parseFloat((v||'0').trim().replace(',','.'))||0;}
 function s(v){return(v||'').trim().replace(/^"+|"+$/g,'');}
